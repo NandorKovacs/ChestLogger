@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "chestlogger",
+  "version": "${version}",
+  "name": "ChestLogger",
+  "description": "Loggs into a txt file when and where Chests are opened",
+  "authors": [
+    "Roaringmind22"
+  ],
+  "contributors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/chestlogger/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.roaringmind.chestlogger.ChestLogger"
+    ],
+    "client": [],
+    "server": []
+  },
+  "mixins": [
+    "chestlogger.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.11.3",
+    "fabric": "*"
+  }
+}
