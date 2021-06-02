@@ -37,6 +37,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.DynamicRegistryManager;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
+import net.roaringmind.chestlogger.callback.OpenDonkeyCallback;
 
 public class ChestLogger implements ModInitializer {
 
@@ -49,7 +50,7 @@ public class ChestLogger implements ModInitializer {
   public void onInitialize() {
     log(Level.INFO, "Initializing");
     registerEvents();
-    registerCommands();
+    //registerCommands();
   }
 
   private void registerCommands() {
@@ -103,6 +104,20 @@ public class ChestLogger implements ModInitializer {
       chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString());
       return ActionResult.PASS;
+    });
+    OpenDonkeyCallback.EVENT.register((player, entity) -> {
+      if (player.world.isClient || player == null) {
+        log(Level.INFO, "i was here");
+        return;
+      }
+
+      String dimStr = getDimString(player.world);
+      String timeStamp = getTimeStamp();
+      String entityStr = getEntityString(entity);
+      BlockPos pos = entity.getBlockPos();
+
+      chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+          player.world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString());
     });
   }
 
@@ -201,10 +216,6 @@ public class ChestLogger implements ModInitializer {
   }
 
   private boolean shouldBeLogged(Entity entity) {
-    if (entity instanceof AbstractDonkeyEntity && ((AbstractDonkeyEntity) entity).hasChest()) {
-      return true;
-    }
-
     if (entity instanceof StorageMinecartEntity) {
       return true;
     }
