@@ -1,25 +1,36 @@
 package net.roaringmind.chestlogger;
 
+import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.server.command.CommandManager.literal;
+
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
+import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.AbstractDonkeyEntity;
 import net.minecraft.entity.passive.DonkeyEntity;
@@ -28,6 +39,8 @@ import net.minecraft.entity.passive.MuleEntity;
 import net.minecraft.entity.vehicle.ChestMinecartEntity;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.entity.vehicle.StorageMinecartEntity;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.BlockPos;
@@ -48,14 +61,14 @@ public class ChestLogger implements ModInitializer {
   public void onInitialize() {
     log(Level.INFO, "Initializing");
     registerEvents();
-    //registerCommands();
   }
+
+  public static String savePath;
 
   private void registerEvents() {
     ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
-      String filePath = server.getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString();
-      File file = new File(filePath);
-      ;
+      savePath = server.getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString();
+      File file = new File(savePath);
 
       try {
         file.createNewFile();
@@ -76,7 +89,7 @@ public class ChestLogger implements ModInitializer {
       BlockPos pos = hitResult.getBlockPos();
 
       chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), blockstr,
-          world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString());
+          savePath);
       return ActionResult.PASS;
     });
     UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
@@ -90,7 +103,7 @@ public class ChestLogger implements ModInitializer {
       BlockPos pos = entity.getBlockPos();
 
       chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
-          world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString());
+          savePath);
       return ActionResult.PASS;
     });
     OpenDonkeyCallback.EVENT.register((player, entity) -> {
@@ -105,8 +118,58 @@ public class ChestLogger implements ModInitializer {
       BlockPos pos = entity.getBlockPos();
 
       chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
-          player.world.getServer().getSavePath(WorldSavePath.ROOT).resolve("chestlogger.txt").toString());
+          savePath);
     });
+    CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+      dispatcher.register(literal("chestlogger")
+          .then(argument("coords", BlockPosArgumentType.blockPos())
+              .executes(ctx -> {
+                ctx.getSource().getPlayer().sendMessage(getPosLogList(BlockPosArgumentType.getBlockPos(ctx, "coords")),
+                    false);
+                return 1;
+              })));
+    });
+  }
+
+  public Text getPosLogList(BlockPos pos) {
+    
+    try {
+      ReversedLinesFileReader fr = new ReversedLinesFileReader(Path.of(savePath), 4096,
+          Charset.defaultCharset().toString());
+
+      int i = 0;
+      String s;
+      List<String> lines = new ArrayList<>();
+
+
+      while (i != 20) {
+        s = fr.readLine();
+        if (s == null) {
+          break;
+        }
+
+        if (s.contains("x: " + pos.getX() + " y: " + pos.getY() + " z: " + pos.getZ())) {
+          lines.add(s);
+        
+          ++i;
+        }
+      }
+
+      String res = "";
+      for (String str : lines) {
+        res = String.join("\n", res, str);
+      }
+
+      return new LiteralText(res);
+    } catch (FileNotFoundException e) {
+      log(Level.ERROR, "no file called chestlogger.txt");
+      e.printStackTrace();
+    } catch (IOException e) {
+      log(Level.ERROR, "file reader crashed");
+      e.printStackTrace();
+    }
+  
+    return null;
   }
 
   private String getBlockString(Block block) {
