@@ -172,7 +172,7 @@ public class ChestLogger implements ModInitializer {
   }
 
   private String getBlockString(Block block) {
-    return block.getName().toString();
+    return block.getName().getString();
   }
 
   private String getEntityString(Entity entity) {
