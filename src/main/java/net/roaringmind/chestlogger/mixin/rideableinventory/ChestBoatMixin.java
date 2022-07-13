@@ -1,4 +1,4 @@
-package net.roaringmind.chestlogger.mixin;
+package net.roaringmind.chestlogger.mixin.rideableinventory;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -7,17 +7,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.passive.AbstractDonkeyEntity;
-import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.roaringmind.chestlogger.callback.OpenDonkeyCallback;
+import net.minecraft.entity.vehicle.ChestBoatEntity;
+import net.roaringmind.chestlogger.callback.RideableInventoryCallback;
 
-@Mixin(AbstractHorseEntity.class)
-public abstract class HorseInventoryMixin {
+@Mixin(ChestBoatEntity.class)
+public abstract class ChestBoatMixin {
   @Inject(method = "openInventory", at = @At(value = "HEAD"), locals = LocalCapture.CAPTURE_FAILSOFT)
   public void openInventoryMixin(PlayerEntity player, CallbackInfo ci) {
-    if ((AbstractHorseEntity)(Object)this instanceof AbstractDonkeyEntity && ((AbstractDonkeyEntity)(Object)this).hasChest()) {
-      OpenDonkeyCallback.EVENT.invoker().interact(player, (Entity)(Object)this);
-    }
+    RideableInventoryCallback.EVENT.invoker().interact(player, (Entity)(Object)this);  
   }
 }

@@ -5,9 +5,9 @@ import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 
-public interface OpenDonkeyCallback {
-  Event<OpenDonkeyCallback> EVENT = EventFactory.createArrayBacked(OpenDonkeyCallback.class, (listeners) -> (player, entity) -> {
-    for (OpenDonkeyCallback listener : listeners) {
+public interface RideableInventoryCallback {
+  Event<RideableInventoryCallback> EVENT = EventFactory.createArrayBacked(RideableInventoryCallback.class, (listeners) -> (player, entity) -> {
+    for (RideableInventoryCallback listener : listeners) {
       listener.interact(player, entity);
     }
   });
