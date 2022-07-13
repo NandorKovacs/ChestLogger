@@ -89,7 +89,7 @@ public class ChestLogger implements ModInitializer {
       String blockstr = getBlockString(block);
       BlockPos pos = hitResult.getBlockPos();
 
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), blockstr,
+      chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), blockstr,
           savePath);
       return ActionResult.PASS;
     });
@@ -103,7 +103,7 @@ public class ChestLogger implements ModInitializer {
       String entityStr = getEntityString(entity);
       BlockPos pos = entity.getBlockPos();
 
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+      chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           savePath);
       return ActionResult.PASS;
     });
@@ -118,7 +118,7 @@ public class ChestLogger implements ModInitializer {
       String entityStr = getEntityString(entity);
       BlockPos pos = entity.getBlockPos();
 
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+      chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           savePath);
     });
     OpenChestBoatCallback.EVENT.register((player, entity) -> {
@@ -132,7 +132,7 @@ public class ChestLogger implements ModInitializer {
       String entityStr = getEntityString(entity);
       BlockPos pos = entity.getBlockPos();
 
-      chestLog(timeStamp, player.getDisplayName().asOrderedText().toString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+      chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           savePath);
     });
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
