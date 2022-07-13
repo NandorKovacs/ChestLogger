@@ -32,7 +32,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.vehicle.StorageMinecartEntity;
+import net.minecraft.entity.vehicle.VehicleInventory;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
@@ -82,20 +82,6 @@ public class ChestLogger implements ModInitializer {
       BlockPos pos = hitResult.getBlockPos();
 
       chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), blockstr,
-          savePath);
-      return ActionResult.PASS;
-    });
-    UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-      if (world.isClient || !shouldBeLogged(entity)) {
-        return ActionResult.PASS;
-      }
-
-      String dimStr = getDimString(world);
-      String timeStamp = getTimeStamp();
-      String entityStr = getEntityString(entity);
-      BlockPos pos = entity.getBlockPos();
-
-      chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           savePath);
       return ActionResult.PASS;
     });
@@ -228,13 +214,6 @@ public class ChestLogger implements ModInitializer {
     }
 
     return true;
-  }
-
-  private boolean shouldBeLogged(Entity entity) {
-    if (entity instanceof StorageMinecartEntity) {
-      return true;
-    }
-    return false;
   }
 
   public static void log(Level level, String message) {
