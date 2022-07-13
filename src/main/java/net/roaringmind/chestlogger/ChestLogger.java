@@ -32,13 +32,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.passive.AbstractDonkeyEntity;
-import net.minecraft.entity.passive.DonkeyEntity;
-import net.minecraft.entity.passive.LlamaEntity;
-import net.minecraft.entity.passive.MuleEntity;
-import net.minecraft.entity.vehicle.ChestBoatEntity;
-import net.minecraft.entity.vehicle.ChestMinecartEntity;
-import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.entity.vehicle.StorageMinecartEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -179,52 +172,11 @@ public class ChestLogger implements ModInitializer {
   }
 
   private String getBlockString(Block block) {
-    if (block == Blocks.CHEST) {
-      return "chest";
-    }
-    if (block == Blocks.TRAPPED_CHEST) {
-      return "trapped_chest";
-    }
-    if (block == Blocks.BARREL) {
-      return "barrel";
-    }
-    if (block instanceof ShulkerBoxBlock) {
-      return "shulker_box";
-    }
-    if (block == Blocks.HOPPER) {
-      return "hopper";
-    }
-    if (block == Blocks.ENDER_CHEST) {
-      return "ender_chest";
-    }
-    return "error_occured: block unidentified";
+    return block.getName().toString();
   }
 
   private String getEntityString(Entity entity) {
-    if (entity instanceof AbstractDonkeyEntity) {
-      if (entity instanceof DonkeyEntity) {
-        return "donkey";
-      }
-      if (entity instanceof LlamaEntity) {
-        return "llama";
-      }
-      if (entity instanceof MuleEntity) {
-        return "mule";
-      }
-      return "error_occured: entity unidentified";
-    }
-
-    if (entity instanceof ChestBoatEntity) {
-      return "chest_boat";
-    }
-
-    if (entity instanceof ChestMinecartEntity) {
-      return "chest_minecart";
-    }
-    if (entity instanceof HopperMinecartEntity) {
-      return "hopper_minecart";
-    }
-    return "error_occured: entity unidentified";
+    return entity.getType().getName().getString();
   }
 
   private String getDimString(World world) {
