@@ -48,8 +48,7 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.dimension.DimensionTypes;
-import net.roaringmind.chestlogger.callback.OpenChestBoatCallback;
-import net.roaringmind.chestlogger.callback.OpenDonkeyCallback;
+import net.roaringmind.chestlogger.callback.RideableInventoryCallback;
 
 public class ChestLogger implements ModInitializer {
 
@@ -107,21 +106,7 @@ public class ChestLogger implements ModInitializer {
           savePath);
       return ActionResult.PASS;
     });
-    OpenDonkeyCallback.EVENT.register((player, entity) -> {
-      if (player.world.isClient || player == null) {
-        log(Level.INFO, "i was here");
-        return;
-      }
-
-      String dimStr = getDimString(player.world);
-      String timeStamp = getTimeStamp();
-      String entityStr = getEntityString(entity);
-      BlockPos pos = entity.getBlockPos();
-
-      chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
-          savePath);
-    });
-    OpenChestBoatCallback.EVENT.register((player, entity) -> {
+    RideableInventoryCallback.EVENT.register((player, entity) -> {
       if (player.world.isClient || player == null) {
         log(Level.INFO, "i was here");
         return;
