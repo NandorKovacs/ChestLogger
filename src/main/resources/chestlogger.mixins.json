@@ -2,9 +2,9 @@
   "required": true,
   "package": "net.roaringmind.chestlogger.mixin",
   "compatibilityLevel": "JAVA_16",
-  "mixins": ["rideableinventory/AbstractHorseMixin", "rideableinventory/ChestBoatMixin"],
+  "mixins": [],
   "client": [],
-  "server": [],
+  "server": ["rideableinventory/AbstractHorseMixin", "rideableinventory/ChestBoatMixin", "VehicleInventoryOpenMixin"],
   "injectors": {
     "defaultRequire": 1
   }

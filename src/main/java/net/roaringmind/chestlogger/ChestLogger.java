@@ -22,17 +22,15 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.fabricmc.api.ModInitializer;
+import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.vehicle.VehicleInventory;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
@@ -42,8 +40,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.dimension.DimensionTypes;
 import net.roaringmind.chestlogger.callback.RideableInventoryCallback;
+import net.roaringmind.chestlogger.callback.VehicleInventoryOpenCallback;
 
-public class ChestLogger implements ModInitializer {
+public class ChestLogger implements DedicatedServerModInitializer {
 
   public static Logger LOGGER = LogManager.getLogger();
 
@@ -51,7 +50,7 @@ public class ChestLogger implements ModInitializer {
   public static final String MOD_NAME = "ChestLogger";
 
   @Override
-  public void onInitialize() {
+  public void onInitializeServer() {
     log(Level.INFO, "Initializing");
     registerEvents();
   }
@@ -70,11 +69,14 @@ public class ChestLogger implements ModInitializer {
         e.printStackTrace();
       }
     });
+
+    // containerblocks
     UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
       Block block = world.getBlockState(hitResult.getBlockPos()).getBlock();
-      if (world.isClient || !shouldBeLogged(block)) {
+      if (!shouldBeLogged(block)) {
         return ActionResult.PASS;
       }
+
 
       String dimStr = getDimString(world);
       String timeStamp = getTimeStamp();
@@ -85,12 +87,9 @@ public class ChestLogger implements ModInitializer {
           savePath);
       return ActionResult.PASS;
     });
-    RideableInventoryCallback.EVENT.register((player, entity) -> {
-      if (player.world.isClient || player == null) {
-        log(Level.INFO, "i was here");
-        return;
-      }
 
+    // horses, boatchests while sitting in them, donkeys, llamas
+    RideableInventoryCallback.EVENT.register((player, entity) -> {
       String dimStr = getDimString(player.world);
       String timeStamp = getTimeStamp();
       String entityStr = getEntityString(entity);
@@ -99,6 +98,18 @@ public class ChestLogger implements ModInitializer {
       chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
           savePath);
     });
+
+    // container vehicles -> chest minecarts, hopper minecarts, chestboats from the outside
+    VehicleInventoryOpenCallback.EVENT.register((player, entity) -> {
+      String dimStr = getDimString(player.world);
+      String timeStamp = getTimeStamp();
+      String entityStr = getEntityString(entity);
+      BlockPos pos = entity.getBlockPos();
+
+      chestLog(timeStamp, player.getDisplayName().getString(), dimStr, pos.getX(), pos.getY(), pos.getZ(), entityStr,
+          savePath);
+    });
+
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
       dispatcher.register(literal("chestlogger")
           .then(argument("coords", BlockPosArgumentType.blockPos())
@@ -115,6 +126,8 @@ public class ChestLogger implements ModInitializer {
       );
     });
   }
+
+
 
   public Text getPosLogList(BlockPos pos) {
     
